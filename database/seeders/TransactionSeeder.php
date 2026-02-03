@@ -18,9 +18,18 @@ class TransactionSeeder extends Seeder
      */
     public function run(): void
     {
+        // Clear existing transactions
+        TransactionItem::truncate();
+        Transaction::truncate();
+        
         $user = User::first();
         $customers = Customer::all();
         $products = Product::all();
+
+        if (!$user || $customers->isEmpty() || $products->isEmpty()) {
+            $this->command->error('❌ Users, Customers, or Products not found. Please run other seeders first.');
+            return;
+        }
 
         // Buat 20 transaksi dummy untuk 7 hari terakhir
         for ($i = 0; $i < 20; $i++) {
@@ -76,5 +85,7 @@ class TransactionSeeder extends Seeder
                 'paid_amount' => $subtotal,
             ]);
         }
+        
+        $this->command->info('✅ Transactions seeded successfully');
     }
 }

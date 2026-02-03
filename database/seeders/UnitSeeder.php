@@ -13,6 +13,9 @@ class UnitSeeder extends Seeder
      */
     public function run(): void
     {
+        // Clear existing units
+        Unit::truncate();
+        
         $units = [
             // Unit Berat
             [
@@ -116,8 +119,10 @@ class UnitSeeder extends Seeder
             ],
         ];
 
-        foreach ($units as $unit) {
-            Unit::create($unit);
+        foreach ($units as $unitData) {
+            Unit::create($unitData);
         }
+        
+        $this->command->info('✅ Units seeded successfully');
     }
 }

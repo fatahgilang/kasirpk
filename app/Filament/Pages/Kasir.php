@@ -8,40 +8,33 @@ use App\Models\Transaction;
 use App\Models\TransactionItem;
 use BackedEnum;
 use Filament\Pages\Page;
-use Filament\Actions\Action;
-use Filament\Actions\Concerns\InteractsWithActions;
-use Filament\Actions\Contracts\HasActions;
 use Filament\Notifications\Notification;
-use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\DB;
-use Livewire\Component;
+use Livewire\Attributes\Computed;
 
-class POS extends Page implements HasActions
+class Kasir extends Page
 {
-    use InteractsWithActions;
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-shopping-cart';
     
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedShoppingCart;
+    protected static ?string $title = 'Kasir';
     
-    protected static ?string $title = 'Point of Sale';
+    protected static ?string $navigationLabel = 'Kasir';
     
-    protected static ?string $navigationLabel = 'Kasir (POS)';
-    
-    protected static ?int $navigationSort = 0;
+    protected static ?int $navigationSort = 1;
 
-    public $selectedCustomer = null;
-    public $productSearch = '';
+    public ?int $selectedCustomer = null;
+    public string $searchQuery = '';
     public array $cart = [];
     
     public float $subtotal = 0;
     public float $discount = 0;
-    public float $tax = 0;
     public float $total = 0;
     public float $paid = 0;
     public float $change = 0;
 
     public function getView(): string
     {
-        return 'filament.pages.pos';
+        return 'filament.pages.kasir';
     }
 
     public function mount(): void
@@ -49,23 +42,47 @@ class POS extends Page implements HasActions
         $this->calculateTotals();
     }
 
+    #[Computed]
+    public function availableProducts()
+    {
+        $query = Product::where('is_active', true)
+            ->with(['category', 'unit']);
+            
+        if (!empty($this->searchQuery)) {
+            $query->where(function($q) {
+                $q->where('name', 'like', '%' . $this->searchQuery . '%')
+                  ->orWhere('code', 'like', '%' . $this->searchQuery . '%')
+                  ->orWhere('brand', 'like', '%' . $this->searchQuery . '%');
+            });
+        }
+        
+        return $query->orderBy('name')->get();
+    }
+
+    #[Computed]
+    public function availableCustomers()
+    {
+        return Customer::where('is_active', true)
+            ->orderBy('name')
+            ->get();
+    }
+
     public function addToCart($productId): void
     {
         $product = Product::find($productId);
         
-        if (!$product) {
+        if (!$product || !$product->is_active) {
             Notification::make()
-                ->title('❌ Produk tidak ditemukan')
-                ->body('Produk yang dipilih tidak tersedia')
+                ->title('Produk tidak tersedia')
                 ->danger()
                 ->send();
             return;
         }
 
-        // Check stock availability
+        // Check stock
         if ($product->track_stock && $product->stock_quantity <= 0) {
             Notification::make()
-                ->title('⚠️ Stok habis')
+                ->title('Stok habis')
                 ->body("Produk {$product->name} sudah habis")
                 ->warning()
                 ->send();
@@ -77,10 +94,10 @@ class POS extends Page implements HasActions
         });
 
         if ($existingIndex !== false) {
-            // Check if adding one more exceeds stock
+            // Check stock limit
             if ($product->track_stock && ($this->cart[$existingIndex]['quantity'] + 1) > $product->stock_quantity) {
                 Notification::make()
-                    ->title('⚠️ Stok tidak mencukupi')
+                    ->title('Stok tidak mencukupi')
                     ->body("Stok {$product->name} hanya tersisa {$product->stock_quantity}")
                     ->warning()
                     ->send();
@@ -102,24 +119,25 @@ class POS extends Page implements HasActions
         }
 
         $this->calculateTotals();
-        $this->productSearch = '';
         
         Notification::make()
-            ->title('✅ Produk ditambahkan')
-            ->body("{$product->name} berhasil ditambahkan ke keranjang")
+            ->title('Produk ditambahkan')
+            ->body("{$product->name} berhasil ditambahkan")
             ->success()
             ->send();
     }
 
     public function removeFromCart($index): void
     {
-        $itemName = $this->cart[$index]['name'] ?? 'Item';
+        if (!isset($this->cart[$index])) return;
+
+        $itemName = $this->cart[$index]['name'];
         unset($this->cart[$index]);
         $this->cart = array_values($this->cart);
         $this->calculateTotals();
         
         Notification::make()
-            ->title('🗑️ Item dihapus')
+            ->title('Item dihapus')
             ->body("{$itemName} telah dihapus dari keranjang")
             ->warning()
             ->send();
@@ -127,6 +145,8 @@ class POS extends Page implements HasActions
 
     public function updateQuantity($index, $quantity): void
     {
+        if (!isset($this->cart[$index])) return;
+
         if ($quantity <= 0) {
             $this->removeFromCart($index);
             return;
@@ -135,10 +155,10 @@ class POS extends Page implements HasActions
         $item = $this->cart[$index];
         $product = Product::find($item['product_id']);
         
-        // Check stock availability
+        // Check stock
         if ($product && $product->track_stock && $quantity > $product->stock_quantity) {
             Notification::make()
-                ->title('⚠️ Stok tidak mencukupi')
+                ->title('Stok tidak mencukupi')
                 ->body("Stok {$product->name} hanya tersisa {$product->stock_quantity}")
                 ->warning()
                 ->send();
@@ -153,25 +173,15 @@ class POS extends Page implements HasActions
     public function calculateTotals(): void
     {
         $this->subtotal = collect($this->cart)->sum('subtotal');
-        $this->total = $this->subtotal - $this->discount + $this->tax;
+        $this->discount = max(0, min($this->discount, 100)); // Limit to 0-100%
+        $discountAmount = $this->subtotal * ($this->discount / 100);
+        $this->total = $this->subtotal - $discountAmount;
         $this->change = max(0, $this->paid - $this->total);
     }
 
     public function updatedDiscount(): void
     {
         $this->calculateTotals();
-    }
-
-    public function updatedTax(): void
-    {
-        $this->calculateTotals();
-    }
-
-    public function updatedProductSearch($value): void
-    {
-        if ($value) {
-            $this->addToCart($value);
-        }
     }
 
     public function updatedPaid(): void
@@ -183,7 +193,7 @@ class POS extends Page implements HasActions
     {
         if (empty($this->cart)) {
             Notification::make()
-                ->title('🛒 Keranjang kosong')
+                ->title('Keranjang kosong')
                 ->body('Tambahkan produk ke keranjang terlebih dahulu')
                 ->warning()
                 ->send();
@@ -192,67 +202,77 @@ class POS extends Page implements HasActions
 
         if ($this->paid < $this->total) {
             Notification::make()
-                ->title('💰 Pembayaran kurang')
+                ->title('Pembayaran kurang')
                 ->body('Jumlah pembayaran harus sama atau lebih dari total')
                 ->warning()
                 ->send();
             return;
         }
 
-        DB::transaction(function () {
-            // Create transaction
-            $transaction = Transaction::create([
-                'customer_id' => $this->selectedCustomer,
-                'user_id' => auth()->id(),
-                'subtotal' => $this->subtotal,
-                'discount_amount' => $this->discount,
-                'tax_amount' => $this->tax,
-                'total_amount' => $this->total,
-                'paid_amount' => $this->paid,
-                'change_amount' => $this->change,
-                'payment_method' => 'cash',
-                'payment_status' => 'paid',
-                'status' => 'completed',
-            ]);
-
-            // Create transaction items and update stock
-            foreach ($this->cart as $item) {
-                TransactionItem::create([
-                    'transaction_id' => $transaction->id,
-                    'product_id' => $item['product_id'],
-                    'product_name' => $item['name'],
-                    'product_code' => $item['code'],
-                    'quantity' => $item['quantity'],
-                    'unit_price' => $item['price'],
-                    'subtotal' => $item['subtotal'],
+        try {
+            DB::transaction(function () {
+                $discountAmount = $this->subtotal * ($this->discount / 100);
+                
+                // Create transaction
+                $transaction = Transaction::create([
+                    'customer_id' => $this->selectedCustomer,
+                    'user_id' => auth()->id(),
+                    'subtotal' => $this->subtotal,
+                    'discount_amount' => $discountAmount,
+                    'tax_amount' => 0,
+                    'total_amount' => $this->total,
+                    'paid_amount' => $this->paid,
+                    'change_amount' => $this->change,
+                    'payment_method' => 'cash',
+                    'payment_status' => 'paid',
+                    'status' => 'completed',
                 ]);
 
-                // Update product stock
-                $product = Product::find($item['product_id']);
-                if ($product && $product->track_stock) {
-                    $product->decrement('stock_quantity', $item['quantity']);
+                // Create transaction items and update stock
+                foreach ($this->cart as $item) {
+                    TransactionItem::create([
+                        'transaction_id' => $transaction->id,
+                        'product_id' => $item['product_id'],
+                        'product_name' => $item['name'],
+                        'product_code' => $item['code'],
+                        'quantity' => $item['quantity'],
+                        'unit_price' => $item['price'],
+                        'subtotal' => $item['subtotal'],
+                    ]);
+
+                    // Update stock
+                    $product = Product::find($item['product_id']);
+                    if ($product && $product->track_stock) {
+                        $product->decrement('stock_quantity', $item['quantity']);
+                    }
                 }
-            }
 
-            // Clear cart
-            $this->reset(['cart', 'selectedCustomer', 'subtotal', 'discount', 'tax', 'total', 'paid', 'change']);
+                // Clear cart
+                $this->reset(['cart', 'selectedCustomer', 'subtotal', 'discount', 'total', 'paid', 'change']);
 
+                Notification::make()
+                    ->title('Transaksi berhasil!')
+                    ->body("Transaksi {$transaction->transaction_number} telah disimpan")
+                    ->success()
+                    ->duration(5000)
+                    ->send();
+            });
+        } catch (\Exception $e) {
             Notification::make()
-                ->title('🎉 Transaksi berhasil!')
-                ->body("Transaksi {$transaction->transaction_number} telah disimpan")
-                ->success()
-                ->duration(5000)
+                ->title('Transaksi gagal')
+                ->body('Terjadi kesalahan: ' . $e->getMessage())
+                ->danger()
                 ->send();
-        });
+        }
     }
 
     public function clearCart(): void
     {
-        $this->reset(['cart', 'subtotal', 'discount', 'tax', 'total', 'paid', 'change']);
+        $this->reset(['cart', 'subtotal', 'discount', 'total', 'paid', 'change']);
         
         Notification::make()
-            ->title('🗑️ Keranjang dikosongkan')
-            ->body('Semua item telah dihapus dari keranjang')
+            ->title('Keranjang dikosongkan')
+            ->body('Semua item telah dihapus')
             ->info()
             ->send();
     }
@@ -267,17 +287,5 @@ class POS extends Page implements HasActions
     {
         $this->paid = ceil($this->total / 1000) * 1000;
         $this->calculateTotals();
-    }
-
-    protected function getHeaderActions(): array
-    {
-        return [
-            Action::make('clear_cart')
-                ->label('Kosongkan Keranjang')
-                ->icon('heroicon-o-trash')
-                ->color('danger')
-                ->action(fn () => $this->clearCart())
-                ->requiresConfirmation(),
-        ];
     }
 }

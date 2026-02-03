@@ -15,16 +15,17 @@ class ProductSeeder extends Seeder
      */
     public function run(): void
     {
-        // Get categories and units
-        $pakanAyam = Category::where('slug', 'pakan-ayam')->first();
-        $pakanSapi = Category::where('slug', 'pakan-sapi')->first();
-        $obat = Category::where('slug', 'obat-obatan')->first();
-        $vitamin = Category::where('slug', 'vitamin-suplemen')->first();
+        // Clear existing products
+        Product::truncate();
         
-        $kg = Unit::where('symbol', 'kg')->first();
-        $botol = Unit::where('symbol', 'btl')->first();
-        $tablet = Unit::where('symbol', 'tab')->first();
-        $sachet = Unit::where('symbol', 'sct')->first();
+        // Get categories and units
+        $categories = Category::all()->keyBy('slug');
+        $units = Unit::all()->keyBy('symbol');
+
+        if ($categories->isEmpty() || $units->isEmpty()) {
+            $this->command->error('❌ Categories or Units not found. Please run CategorySeeder and UnitSeeder first.');
+            return;
+        }
 
         $products = [
             // Pakan Ayam
@@ -32,9 +33,9 @@ class ProductSeeder extends Seeder
                 'code' => 'PAK-001',
                 'name' => 'Pakan Ayam Broiler Starter',
                 'slug' => 'pakan-ayam-broiler-starter',
-                'description' => 'Pakan ayam broiler umur 0-3 minggu',
-                'category_id' => $pakanAyam->id,
-                'unit_id' => $kg->id,
+                'description' => 'Pakan ayam broiler umur 0-3 minggu dengan protein tinggi',
+                'category_id' => $categories['pakan-ayam']->id,
+                'unit_id' => $units['kg']->id,
                 'stock_quantity' => 500,
                 'minimum_stock' => 50,
                 'purchase_price' => 8500,
@@ -44,14 +45,33 @@ class ProductSeeder extends Seeder
                 'brand' => 'Charoen Pokphand',
                 'location' => 'Rak A1',
                 'track_stock' => true,
+                'is_active' => true,
             ],
             [
                 'code' => 'PAK-002',
+                'name' => 'Pakan Ayam Broiler Finisher',
+                'slug' => 'pakan-ayam-broiler-finisher',
+                'description' => 'Pakan ayam broiler umur 4-6 minggu',
+                'category_id' => $categories['pakan-ayam']->id,
+                'unit_id' => $units['kg']->id,
+                'stock_quantity' => 600,
+                'minimum_stock' => 60,
+                'purchase_price' => 8200,
+                'selling_price' => 9200,
+                'wholesale_price' => 8700,
+                'wholesale_min_qty' => 100,
+                'brand' => 'Charoen Pokphand',
+                'location' => 'Rak A1',
+                'track_stock' => true,
+                'is_active' => true,
+            ],
+            [
+                'code' => 'PAK-003',
                 'name' => 'Pakan Ayam Layer',
                 'slug' => 'pakan-ayam-layer',
-                'description' => 'Pakan ayam petelur dewasa',
-                'category_id' => $pakanAyam->id,
-                'unit_id' => $kg->id,
+                'description' => 'Pakan ayam petelur dewasa untuk produksi telur optimal',
+                'category_id' => $categories['pakan-ayam']->id,
+                'unit_id' => $units['kg']->id,
                 'stock_quantity' => 750,
                 'minimum_stock' => 75,
                 'purchase_price' => 7800,
@@ -61,16 +81,35 @@ class ProductSeeder extends Seeder
                 'brand' => 'Japfa',
                 'location' => 'Rak A2',
                 'track_stock' => true,
+                'is_active' => true,
+            ],
+            [
+                'code' => 'PAK-004',
+                'name' => 'Pakan Ayam Kampung',
+                'slug' => 'pakan-ayam-kampung',
+                'description' => 'Pakan khusus ayam kampung organik',
+                'category_id' => $categories['pakan-ayam']->id,
+                'unit_id' => $units['kg']->id,
+                'stock_quantity' => 300,
+                'minimum_stock' => 30,
+                'purchase_price' => 9000,
+                'selling_price' => 10200,
+                'wholesale_price' => 9600,
+                'wholesale_min_qty' => 50,
+                'brand' => 'Pokphand',
+                'location' => 'Rak A3',
+                'track_stock' => true,
+                'is_active' => true,
             ],
             
             // Pakan Sapi
             [
-                'code' => 'PAK-003',
+                'code' => 'PAK-005',
                 'name' => 'Konsentrat Sapi Perah',
                 'slug' => 'konsentrat-sapi-perah',
                 'description' => 'Konsentrat untuk sapi perah produktif',
-                'category_id' => $pakanSapi->id,
-                'unit_id' => $kg->id,
+                'category_id' => $categories['pakan-sapi']->id,
+                'unit_id' => $units['kg']->id,
                 'stock_quantity' => 1000,
                 'minimum_stock' => 100,
                 'purchase_price' => 4500,
@@ -80,6 +119,85 @@ class ProductSeeder extends Seeder
                 'brand' => 'Cargill',
                 'location' => 'Rak B1',
                 'track_stock' => true,
+                'is_active' => true,
+            ],
+            [
+                'code' => 'PAK-006',
+                'name' => 'Konsentrat Sapi Potong',
+                'slug' => 'konsentrat-sapi-potong',
+                'description' => 'Konsentrat untuk penggemukan sapi potong',
+                'category_id' => $categories['pakan-sapi']->id,
+                'unit_id' => $units['kg']->id,
+                'stock_quantity' => 800,
+                'minimum_stock' => 80,
+                'purchase_price' => 4200,
+                'selling_price' => 4900,
+                'wholesale_price' => 4500,
+                'wholesale_min_qty' => 500,
+                'brand' => 'Cargill',
+                'location' => 'Rak B2',
+                'track_stock' => true,
+                'is_active' => true,
+            ],
+            
+            // Pakan Kambing
+            [
+                'code' => 'PAK-007',
+                'name' => 'Konsentrat Kambing',
+                'slug' => 'konsentrat-kambing',
+                'description' => 'Konsentrat untuk kambing dan domba',
+                'category_id' => $categories['pakan-kambing']->id,
+                'unit_id' => $units['kg']->id,
+                'stock_quantity' => 400,
+                'minimum_stock' => 40,
+                'purchase_price' => 5000,
+                'selling_price' => 5800,
+                'wholesale_price' => 5400,
+                'wholesale_min_qty' => 200,
+                'brand' => 'Japfa',
+                'location' => 'Rak B3',
+                'track_stock' => true,
+                'is_active' => true,
+            ],
+            
+            // Pakan Bebek
+            [
+                'code' => 'PAK-008',
+                'name' => 'Pakan Bebek Petelur',
+                'slug' => 'pakan-bebek-petelur',
+                'description' => 'Pakan khusus bebek petelur',
+                'category_id' => $categories['pakan-bebek']->id,
+                'unit_id' => $units['kg']->id,
+                'stock_quantity' => 250,
+                'minimum_stock' => 25,
+                'purchase_price' => 8000,
+                'selling_price' => 9000,
+                'wholesale_price' => 8500,
+                'wholesale_min_qty' => 100,
+                'brand' => 'Charoen Pokphand',
+                'location' => 'Rak A4',
+                'track_stock' => true,
+                'is_active' => true,
+            ],
+            
+            // Pakan Ikan
+            [
+                'code' => 'PAK-009',
+                'name' => 'Pakan Ikan Lele',
+                'slug' => 'pakan-ikan-lele',
+                'description' => 'Pakan apung untuk ikan lele',
+                'category_id' => $categories['pakan-ikan']->id,
+                'unit_id' => $units['kg']->id,
+                'stock_quantity' => 300,
+                'minimum_stock' => 30,
+                'purchase_price' => 12000,
+                'selling_price' => 13500,
+                'wholesale_price' => 12750,
+                'wholesale_min_qty' => 50,
+                'brand' => 'Hi-Pro-Vite',
+                'location' => 'Rak A5',
+                'track_stock' => true,
+                'is_active' => true,
             ],
             
             // Obat-obatan
@@ -88,8 +206,8 @@ class ProductSeeder extends Seeder
                 'name' => 'Antibiotik Ternak',
                 'slug' => 'antibiotik-ternak',
                 'description' => 'Antibiotik untuk pengobatan infeksi ternak',
-                'category_id' => $obat->id,
-                'unit_id' => $botol->id,
+                'category_id' => $categories['obat-obatan']->id,
+                'unit_id' => $units['btl']->id,
                 'stock_quantity' => 25,
                 'minimum_stock' => 5,
                 'purchase_price' => 45000,
@@ -101,16 +219,37 @@ class ProductSeeder extends Seeder
                 'batch_number' => 'MED2024001',
                 'usage_instructions' => 'Dosis: 1ml per 10kg berat badan, 2x sehari',
                 'track_stock' => true,
+                'is_active' => true,
+            ],
+            [
+                'code' => 'OBT-002',
+                'name' => 'Obat Cacing Ternak',
+                'slug' => 'obat-cacing-ternak',
+                'description' => 'Obat cacing spektrum luas untuk ternak',
+                'category_id' => $categories['obat-obatan']->id,
+                'unit_id' => $units['btl']->id,
+                'stock_quantity' => 30,
+                'minimum_stock' => 5,
+                'purchase_price' => 35000,
+                'selling_price' => 42000,
+                'brand' => 'Sanbe',
+                'location' => 'Rak C1',
+                'has_expiry' => true,
+                'expiry_date' => now()->addMonths(24),
+                'batch_number' => 'SAN2024002',
+                'usage_instructions' => 'Dosis: 1ml per 20kg berat badan, sekali pakai',
+                'track_stock' => true,
+                'is_active' => true,
             ],
             
-            // Vitamin
+            // Vitamin & Suplemen
             [
                 'code' => 'VIT-001',
                 'name' => 'Vitamin B Complex',
                 'slug' => 'vitamin-b-complex',
                 'description' => 'Vitamin B kompleks untuk ternak',
-                'category_id' => $vitamin->id,
-                'unit_id' => $tablet->id,
+                'category_id' => $categories['vitamin-suplemen']->id,
+                'unit_id' => $units['tab']->id,
                 'stock_quantity' => 500,
                 'minimum_stock' => 50,
                 'purchase_price' => 500,
@@ -124,14 +263,15 @@ class ProductSeeder extends Seeder
                 'batch_number' => 'SAN2024001',
                 'usage_instructions' => '1 tablet per hari dicampur pakan',
                 'track_stock' => true,
+                'is_active' => true,
             ],
             [
                 'code' => 'VIT-002',
                 'name' => 'Elektrolit Sachet',
                 'slug' => 'elektrolit-sachet',
                 'description' => 'Elektrolit untuk mengatasi dehidrasi ternak',
-                'category_id' => $vitamin->id,
-                'unit_id' => $sachet->id,
+                'category_id' => $categories['vitamin-suplemen']->id,
+                'unit_id' => $units['sct']->id,
                 'stock_quantity' => 200,
                 'minimum_stock' => 20,
                 'purchase_price' => 2500,
@@ -145,11 +285,118 @@ class ProductSeeder extends Seeder
                 'batch_number' => 'ROM2024001',
                 'usage_instructions' => '1 sachet untuk 10 liter air minum',
                 'track_stock' => true,
+                'is_active' => true,
+            ],
+            [
+                'code' => 'VIT-003',
+                'name' => 'Vitamin AD3E',
+                'slug' => 'vitamin-ad3e',
+                'description' => 'Vitamin A, D3, E untuk pertumbuhan ternak',
+                'category_id' => $categories['vitamin-suplemen']->id,
+                'unit_id' => $units['btl']->id,
+                'stock_quantity' => 40,
+                'minimum_stock' => 8,
+                'purchase_price' => 25000,
+                'selling_price' => 32000,
+                'brand' => 'Medion',
+                'location' => 'Rak C2',
+                'has_expiry' => true,
+                'expiry_date' => now()->addMonths(18),
+                'batch_number' => 'MED2024003',
+                'usage_instructions' => '1ml per liter air minum, 3x seminggu',
+                'track_stock' => true,
+                'is_active' => true,
+            ],
+            
+            // Vaksin
+            [
+                'code' => 'VAK-001',
+                'name' => 'Vaksin ND-IB',
+                'slug' => 'vaksin-nd-ib',
+                'description' => 'Vaksin Newcastle Disease dan Infectious Bronchitis',
+                'category_id' => $categories['vaksin']->id,
+                'unit_id' => $units['btl']->id,
+                'stock_quantity' => 15,
+                'minimum_stock' => 3,
+                'purchase_price' => 85000,
+                'selling_price' => 105000,
+                'brand' => 'Medion',
+                'location' => 'Kulkas Vaksin',
+                'has_expiry' => true,
+                'expiry_date' => now()->addMonths(6),
+                'batch_number' => 'VAK2024001',
+                'usage_instructions' => 'Simpan di suhu 2-8°C, 1 dosis per ekor',
+                'track_stock' => true,
+                'is_active' => true,
+            ],
+            
+            // Peralatan Kandang
+            [
+                'code' => 'PRL-001',
+                'name' => 'Tempat Pakan Ayam',
+                'slug' => 'tempat-pakan-ayam',
+                'description' => 'Tempat pakan plastik untuk ayam',
+                'category_id' => $categories['peralatan-kandang']->id,
+                'unit_id' => $units['pcs']->id,
+                'stock_quantity' => 50,
+                'minimum_stock' => 10,
+                'purchase_price' => 15000,
+                'selling_price' => 20000,
+                'wholesale_price' => 18000,
+                'wholesale_min_qty' => 10,
+                'brand' => 'Maspion',
+                'location' => 'Rak D1',
+                'track_stock' => true,
+                'is_active' => true,
+            ],
+            [
+                'code' => 'PRL-002',
+                'name' => 'Tempat Minum Nipple',
+                'slug' => 'tempat-minum-nipple',
+                'description' => 'Tempat minum otomatis sistem nipple',
+                'category_id' => $categories['peralatan-kandang']->id,
+                'unit_id' => $units['pcs']->id,
+                'stock_quantity' => 100,
+                'minimum_stock' => 20,
+                'purchase_price' => 8000,
+                'selling_price' => 12000,
+                'wholesale_price' => 10000,
+                'wholesale_min_qty' => 20,
+                'brand' => 'Plasson',
+                'location' => 'Rak D2',
+                'track_stock' => true,
+                'is_active' => true,
+            ],
+            
+            // Desinfektan
+            [
+                'code' => 'DIS-001',
+                'name' => 'Desinfektan Kandang',
+                'slug' => 'desinfektan-kandang',
+                'description' => 'Desinfektan untuk pembersihan kandang',
+                'category_id' => $categories['desinfektan']->id,
+                'unit_id' => $units['L']->id,
+                'stock_quantity' => 60,
+                'minimum_stock' => 12,
+                'purchase_price' => 18000,
+                'selling_price' => 25000,
+                'wholesale_price' => 22000,
+                'wholesale_min_qty' => 10,
+                'brand' => 'Antisep',
+                'location' => 'Rak E1',
+                'has_expiry' => true,
+                'expiry_date' => now()->addMonths(36),
+                'batch_number' => 'ANT2024001',
+                'usage_instructions' => 'Encerkan 1:100 dengan air bersih',
+                'track_stock' => true,
+                'is_active' => true,
             ],
         ];
 
-        foreach ($products as $product) {
-            Product::create($product);
+        foreach ($products as $productData) {
+            Product::create($productData);
         }
+        
+        $this->command->info('✅ Products seeded successfully');
     }
 }
