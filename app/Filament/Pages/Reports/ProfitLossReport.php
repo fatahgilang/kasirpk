@@ -17,8 +17,6 @@ use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Attributes\Session;
 
-#[Lazy]
-#[Title('Laporan Laba Rugi')]
 class ProfitLossReport extends Page
 {
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-document-chart-bar';
