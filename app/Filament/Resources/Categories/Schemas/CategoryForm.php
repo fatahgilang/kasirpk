@@ -16,7 +16,7 @@ class CategoryForm
         return $schema
             ->components([
                 TextInput::make('name')
-                    ->label('Nama Kategori')
+                    ->label(__('app.resources.category.fields.name'))
                     ->required()
                     ->live(onBlur: true)
                     ->afterStateUpdated(fn (string $operation, $state, callable $set) => 
@@ -25,30 +25,30 @@ class CategoryForm
                     ->columnSpan(1),
                 
                 TextInput::make('slug')
-                    ->label('Slug')
+                    ->label(__('app.resources.category.fields.slug'))
                     ->required()
                     ->unique(ignoreRecord: true)
                     ->alphaDash()
                     ->columnSpan(1),
                     
                 Textarea::make('description')
-                    ->label('Deskripsi')
+                    ->label(__('app.resources.category.fields.description'))
                     ->rows(3)
                     ->columnSpanFull(),
 
                 TextInput::make('icon')
-                    ->label('Icon')
+                    ->label(__('app.resources.category.fields.icon'))
                     ->placeholder('heroicon-o-tag')
-                    ->helperText('Gunakan nama icon Heroicon')
+                    ->helperText(__('app.resources.category.helpers.icon'))
                     ->columnSpan(1),
                 
                 ColorPicker::make('color')
-                    ->label('Warna')
+                    ->label(__('app.resources.category.fields.color'))
                     ->default('#6366f1')
                     ->columnSpan(1),
                 
                 Toggle::make('is_active')
-                    ->label('Aktif')
+                    ->label(__('app.resources.category.fields.is_active'))
                     ->default(true)
                     ->columnSpan(1),
             ])

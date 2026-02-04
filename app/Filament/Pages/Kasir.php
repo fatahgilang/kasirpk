@@ -2,6 +2,11 @@
 
 namespace App\Filament\Pages;
 
+/**
+ * @method static \Illuminate\Contracts\Auth\StatefulGuard auth()
+ * @method static int|null id()
+ */
+
 use App\Models\Product;
 use App\Models\Customer;
 use App\Models\Transaction;
@@ -10,8 +15,16 @@ use BackedEnum;
 use Filament\Pages\Page;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Eloquent\Collection;
 use Livewire\Attributes\Computed;
 
+/**
+ * POS Cashier Page
+ * 
+ * @property-read \Illuminate\Database\Eloquent\Collection<int,\App\Models\Product> $availableProducts
+ * @property-read \Illuminate\Database\Eloquent\Collection<int,\App\Models\Customer> $availableCustomers
+ * @method static \Illuminate\Contracts\Auth\Guard auth()
+ */
 class Kasir extends Page
 {
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-shopping-cart';
@@ -22,14 +35,67 @@ class Kasir extends Page
     
     protected static ?int $navigationSort = 1;
 
+    /**
+     * Selected customer ID
+     *
+     * @var int|null
+     */
     public ?int $selectedCustomer = null;
+    
+    /**
+     * Product search query
+     *
+     * @var string
+     */
     public string $searchQuery = '';
+    
+    /**
+     * Shopping cart items
+     *
+     * @var array<int, array{product_id: int, name: string, code: string, price: float, quantity: int, subtotal: float, stock: int, unit_id: int}>
+     */
     public array $cart = [];
     
+    /**
+     * Track selected unit for each product in cart
+     *
+     * @var array<int, int>
+     */
+    public array $selectedUnits = [];
+    
+    /**
+     * Subtotal amount
+     *
+     * @var float
+     */
     public float $subtotal = 0;
+    
+    /**
+     * Discount percentage
+     *
+     * @var float
+     */
     public float $discount = 0;
+    
+    /**
+     * Total amount
+     *
+     * @var float
+     */
     public float $total = 0;
+    
+    /**
+     * Amount paid
+     *
+     * @var float
+     */
     public float $paid = 0;
+    
+    /**
+     * Change amount
+     *
+     * @var float
+     */
     public float $change = 0;
 
     public function getView(): string
@@ -43,7 +109,7 @@ class Kasir extends Page
     }
 
     #[Computed]
-    public function availableProducts()
+    public function availableProducts(): Collection
     {
         $query = Product::where('is_active', true)
             ->with(['category', 'unit']);
@@ -60,7 +126,7 @@ class Kasir extends Page
     }
 
     #[Computed]
-    public function availableCustomers()
+    public function availableCustomers(): Collection
     {
         return Customer::where('is_active', true)
             ->orderBy('name')
@@ -107,14 +173,26 @@ class Kasir extends Page
             $this->cart[$existingIndex]['quantity']++;
             $this->cart[$existingIndex]['subtotal'] = $this->cart[$existingIndex]['quantity'] * $this->cart[$existingIndex]['price'];
         } else {
+            // Get default unit or base unit
+            $defaultUnitId = $product->unit_id;
+            $productUnits = $product->productUnits()->where('is_active', true)->get();
+            
+            if ($productUnits->isNotEmpty()) {
+                $defaultUnit = $productUnits->firstWhere('is_default', true) ?? $productUnits->first();
+                $defaultUnitId = $defaultUnit->unit_id;
+            }
+            
+            $this->selectedUnits[$product->id] = $defaultUnitId;
+            
             $this->cart[] = [
                 'product_id' => $product->id,
                 'name' => $product->name,
                 'code' => $product->code,
-                'price' => $product->selling_price,
+                'price' => $product->getPriceForUnit($product->selling_price, $defaultUnitId),
                 'quantity' => 1,
-                'subtotal' => $product->selling_price,
+                'subtotal' => $product->getPriceForUnit($product->selling_price, $defaultUnitId),
                 'stock' => $product->stock_quantity,
+                'unit_id' => $defaultUnitId,
             ];
         }
 
@@ -216,7 +294,7 @@ class Kasir extends Page
                 // Create transaction
                 $transaction = Transaction::create([
                     'customer_id' => $this->selectedCustomer,
-                    'user_id' => auth()->id(),
+                    'user_id' => \Illuminate\Support\Facades\Auth::id(),
                     'subtotal' => $this->subtotal,
                     'discount_amount' => $discountAmount,
                     'tax_amount' => 0,
@@ -230,20 +308,24 @@ class Kasir extends Page
 
                 // Create transaction items and update stock
                 foreach ($this->cart as $item) {
+                    $product = Product::find($item['product_id']);
+                    
+                    // Convert quantity to base unit (grams) for stock deduction
+                    $baseQuantity = $product->convertToBaseUnit($item['quantity'], $item['unit_id'] ?? $product->unit_id);
+                    
                     TransactionItem::create([
                         'transaction_id' => $transaction->id,
                         'product_id' => $item['product_id'],
                         'product_name' => $item['name'],
                         'product_code' => $item['code'],
-                        'quantity' => $item['quantity'],
+                        'quantity' => $baseQuantity, // Store in base unit
                         'unit_price' => $item['price'],
                         'subtotal' => $item['subtotal'],
                     ]);
 
-                    // Update stock
-                    $product = Product::find($item['product_id']);
+                    // Update stock in base unit (grams)
                     if ($product && $product->track_stock) {
-                        $product->decrement('stock_quantity', $item['quantity']);
+                        $product->decrement('stock_quantity', $baseQuantity);
                     }
                 }
 
@@ -287,5 +369,52 @@ class Kasir extends Page
     {
         $this->paid = ceil($this->total / 1000) * 1000;
         $this->calculateTotals();
+    }
+
+    public function updatedSelectedUnits($value, $propertyName): void
+    {
+        // Extract product ID from property name (e.g., "selectedUnits.1" -> 1)
+        if (!str_starts_with($propertyName, 'selectedUnits.')) {
+            return;
+        }
+        
+        $productId = (int) str_replace('selectedUnits.', '', $propertyName);
+        
+        // Update price when unit is changed
+        $cartIndex = collect($this->cart)->search(function ($item) use ($productId) {
+            return $item['product_id'] == $productId;
+        });
+
+        if ($cartIndex !== false) {
+            $product = Product::find($productId);
+            if ($product) {
+                $newPrice = $product->getPriceForUnit($product->selling_price, $value);
+                $this->cart[$cartIndex]['price'] = $newPrice;
+                $this->cart[$cartIndex]['subtotal'] = $this->cart[$cartIndex]['quantity'] * $newPrice;
+                $this->cart[$cartIndex]['unit_id'] = $value;
+                $this->calculateTotals();
+            }
+        }
+    }
+
+    public function getAvailableUnitsForProduct($productId): array
+    {
+        $product = Product::find($productId);
+        if (!$product) return [];
+
+        $units = [
+            $product->unit_id => $product->unit->name
+        ];
+
+        $productUnits = $product->productUnits()
+            ->with('unit')
+            ->where('is_active', true)
+            ->get();
+
+        foreach ($productUnits as $productUnit) {
+            $units[$productUnit->unit_id] = $productUnit->unit->name;
+        }
+
+        return $units;
     }
 }

@@ -18,25 +18,25 @@ class CategoriesTable
         return $table
             ->columns([
                 TextColumn::make('name')
-                    ->label('Nama')
+                    ->label(__('app.resources.category.fields.name'))
                     ->searchable()
                     ->sortable(),
                 
                 TextColumn::make('slug')
-                    ->label('Slug')
+                    ->label(__('app.resources.category.fields.slug'))
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 
                 ColorColumn::make('color')
-                    ->label('Warna'),
+                    ->label(__('app.resources.category.fields.color')),
                 
                 TextColumn::make('products_count')
-                    ->label('Jumlah Produk')
+                    ->label(__('app.resources.category.fields.products_count'))
                     ->counts('products')
                     ->sortable(),
                 
                 IconColumn::make('is_active')
-                    ->label('Status')
+                    ->label(__('app.resources.category.fields.is_active'))
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
                     ->falseIcon('heroicon-o-x-circle')
@@ -44,17 +44,17 @@ class CategoriesTable
                     ->falseColor('danger'),
                 
                 TextColumn::make('created_at')
-                    ->label('Dibuat')
+                    ->label(__('app.fields.created_at'))
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 TernaryFilter::make('is_active')
-                    ->label('Status')
-                    ->placeholder('Semua')
-                    ->trueLabel('Aktif')
-                    ->falseLabel('Tidak Aktif'),
+                    ->label(__('app.resources.category.fields.is_active'))
+                    ->placeholder(__('app.filters.all'))
+                    ->trueLabel(__('app.fields.active'))
+                    ->falseLabel(__('app.fields.inactive')),
             ])
             ->recordActions([
                 EditAction::make(),

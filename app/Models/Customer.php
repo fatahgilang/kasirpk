@@ -6,6 +6,29 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
+/**
+ * @property int $id
+ * @property string $code
+ * @property string $name
+ * @property string|null $email
+ * @property string|null $phone
+ * @property string|null $address
+ * @property string|null $livestock_type
+ * @property int|null $livestock_count
+ * @property string $customer_type
+ * @property float $credit_limit
+ * @property float $current_debt
+ * @property int $payment_term_days
+ * @property int $loyalty_points
+ * @property float $total_purchases
+ * @property \Carbon\Carbon|null $last_purchase_date
+ * @property bool $is_active
+ * @property bool $allow_credit
+ * @property \Carbon\Carbon|null $created_at
+ * @property \Carbon\Carbon|null $updated_at
+ * @method static \Illuminate\Database\Eloquent\Builder|Customer whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Customer find($id, $columns = ['*'])
+ */
 class Customer extends Model
 {
     protected $fillable = [

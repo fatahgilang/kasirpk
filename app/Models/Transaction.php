@@ -8,6 +8,28 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Str;
 
+/**
+ * @property int $id
+ * @property string $transaction_number
+ * @property int|null $customer_id
+ * @property int|null $user_id
+ * @property float $subtotal
+ * @property float $discount_amount
+ * @property float $tax_amount
+ * @property float $total_amount
+ * @property float $paid_amount
+ * @property float $change_amount
+ * @property string $payment_method
+ * @property string $payment_status
+ * @property \Carbon\Carbon|null $due_date
+ * @property string $status
+ * @property string|null $notes
+ * @property array|null $payment_details
+ * @property \Carbon\Carbon|null $created_at
+ * @property \Carbon\Carbon|null $updated_at
+ * @method static \Illuminate\Database\Eloquent\Builder|Transaction whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Transaction find($id, $columns = ['*'])
+ */
 class Transaction extends Model
 {
     protected $fillable = [

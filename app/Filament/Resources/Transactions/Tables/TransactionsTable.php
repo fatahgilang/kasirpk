@@ -19,28 +19,28 @@ class TransactionsTable
         return $table
             ->columns([
                 TextColumn::make('transaction_number')
-                    ->label('No. Transaksi')
+                    ->label(__('app.resources.transaction.fields.transaction_number'))
                     ->searchable()
                     ->sortable(),
                     
                 TextColumn::make('customer.name')
-                    ->label('Pelanggan')
+                    ->label(__('app.resources.transaction.fields.customer'))
                     ->default('Umum')
                     ->searchable()
                     ->sortable(),
                     
                 TextColumn::make('user.name')
-                    ->label('Kasir')
+                    ->label(__('app.resources.transaction.fields.cashier'))
                     ->searchable()
                     ->sortable(),
                     
                 TextColumn::make('total_amount')
-                    ->label('Total')
+                    ->label(__('app.resources.transaction.fields.total_amount'))
                     ->money('IDR')
                     ->sortable(),
                     
                 TextColumn::make('payment_method')
-                    ->label('Pembayaran')
+                    ->label(__('app.resources.transaction.fields.payment_method'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'cash' => 'success',
@@ -50,15 +50,15 @@ class TransactionsTable
                         default => 'gray',
                     })
                     ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'cash' => 'Tunai',
-                        'transfer' => 'Transfer',
-                        'qris' => 'QRIS',
-                        'credit' => 'Kredit',
+                        'cash' => __('app.resources.transaction.payment_methods.cash'),
+                        'transfer' => __('app.resources.transaction.payment_methods.transfer'),
+                        'qris' => __('app.resources.transaction.payment_methods.qris'),
+                        'credit' => __('app.resources.transaction.payment_methods.credit'),
                         default => $state,
                     }),
                     
                 TextColumn::make('payment_status')
-                    ->label('Status Bayar')
+                    ->label(__('app.resources.transaction.fields.payment_status'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'paid' => 'success',
@@ -67,14 +67,14 @@ class TransactionsTable
                         default => 'gray',
                     })
                     ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'paid' => 'Lunas',
-                        'partial' => 'Sebagian',
-                        'unpaid' => 'Belum Bayar',
+                        'paid' => __('app.resources.transaction.payment_statuses.paid'),
+                        'partial' => __('app.resources.transaction.payment_statuses.partial'),
+                        'unpaid' => __('app.resources.transaction.payment_statuses.unpaid'),
                         default => $state,
                     }),
                     
                 TextColumn::make('status')
-                    ->label('Status')
+                    ->label(__('app.resources.transaction.fields.status'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'completed' => 'success',
@@ -83,59 +83,60 @@ class TransactionsTable
                         default => 'gray',
                     })
                     ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'completed' => 'Selesai',
-                        'cancelled' => 'Dibatalkan',
-                        'refunded' => 'Dikembalikan',
+                        'completed' => __('app.resources.transaction.statuses.completed'),
+                        'cancelled' => __('app.resources.transaction.statuses.cancelled'),
+                        'refunded' => __('app.resources.transaction.statuses.refunded'),
                         default => $state,
                     }),
                     
                 TextColumn::make('created_at')
-                    ->label('Tanggal')
+                    ->label(__('app.resources.transaction.fields.transaction_date'))
                     ->dateTime('d/m/Y H:i')
                     ->sortable(),
                     
                 TextColumn::make('due_date')
-                    ->label('Jatuh Tempo')
+                    ->label(__('app.resources.transaction.fields.due_date'))
                     ->date('d/m/Y')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('payment_method')
-                    ->label('Metode Pembayaran')
+                    ->label(__('app.resources.transaction.fields.payment_method'))
                     ->options([
-                        'cash' => 'Tunai',
-                        'transfer' => 'Transfer',
-                        'qris' => 'QRIS',
-                        'credit' => 'Kredit',
+                        'cash' => __('app.resources.transaction.payment_methods.cash'),
+                        'transfer' => __('app.resources.transaction.payment_methods.transfer'),
+                        'qris' => __('app.resources.transaction.payment_methods.qris'),
+                        'credit' => __('app.resources.transaction.payment_methods.credit'),
                     ]),
                     
                 SelectFilter::make('payment_status')
-                    ->label('Status Pembayaran')
+                    ->label(__('app.resources.transaction.fields.payment_status'))
                     ->options([
-                        'paid' => 'Lunas',
-                        'partial' => 'Sebagian',
-                        'unpaid' => 'Belum Bayar',
+                        'paid' => __('app.resources.transaction.payment_statuses.paid'),
+                        'partial' => __('app.resources.transaction.payment_statuses.partial'),
+                        'unpaid' => __('app.resources.transaction.payment_statuses.unpaid'),
                     ]),
                     
                 SelectFilter::make('status')
-                    ->label('Status Transaksi')
+                    ->label(__('app.resources.transaction.fields.status'))
                     ->options([
-                        'completed' => 'Selesai',
-                        'cancelled' => 'Dibatalkan',
-                        'refunded' => 'Dikembalikan',
+                        'completed' => __('app.resources.transaction.statuses.completed'),
+                        'cancelled' => __('app.resources.transaction.statuses.cancelled'),
+                        'refunded' => __('app.resources.transaction.statuses.refunded'),
                     ]),
                     
                 Filter::make('today')
-                    ->label('Hari Ini')
+                    ->label(__('app.filters.today'))
                     ->query(fn (Builder $query): Builder => $query->whereDate('created_at', today())),
                     
                 Filter::make('this_week')
-                    ->label('Minggu Ini')
+                    ->label(__('app.filters.this_week'))
                     ->query(fn (Builder $query): Builder => $query->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])),
                     
+                    
                 Filter::make('this_month')
-                    ->label('Bulan Ini')
+                    ->label(__('app.filters.this_month'))
                     ->query(fn (Builder $query): Builder => $query->whereMonth('created_at', now()->month)),
             ])
             ->recordActions([

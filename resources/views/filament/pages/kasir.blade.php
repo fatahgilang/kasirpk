@@ -48,7 +48,7 @@
                                 <div class="product-price">Rp {{ number_format($product->selling_price, 0, ',', '.') }}</div>
                                 @if($product->track_stock)
                                     <div class="stock-badge stock-{{ $product->stock_quantity > 10 ? 'high' : ($product->stock_quantity > 0 ? 'medium' : 'low') }}">
-                                        {{ $product->stock_quantity }}
+                                        {{ $product->formatted_stock }}
                                     </div>
                                 @else
                                     <div class="stock-badge stock-unlimited">∞</div>
@@ -93,6 +93,17 @@
                                     <div class="item-meta">
                                         <span class="item-code">{{ $item['code'] }}</span>
                                         <span class="item-unit-price">Rp {{ number_format($item['price'], 0, ',', '.') }}</span>
+                                    </div>
+                                    <div class="unit-selection">
+                                        <select 
+                                            wire:model.live="selectedUnits.{{ $item['product_id'] }}"
+                                            wire:change="updatedSelectedUnits($event.target.value, {{ $item['product_id'] }})"
+                                            class="unit-select"
+                                        >
+                                            @foreach($this->getAvailableUnitsForProduct($item['product_id']) as $unitId => $unitName)
+                                                <option value="{{ $unitId }}">{{ $unitName }}</option>
+                                            @endforeach
+                                        </select>
                                     </div>
                                 </div>
                                 
@@ -516,6 +527,26 @@
         .item-unit-price {
             color: #059669;
             font-weight: 500;
+        }
+
+        .unit-selection {
+            margin-top: 8px;
+        }
+
+        .unit-select {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 12px;
+            background: white;
+            color: #1e293b;
+        }
+
+        .unit-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
         }
 
         .quantity-section {
